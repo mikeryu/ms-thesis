@@ -87,12 +87,16 @@ class Parser:
 
         if self.state.is_in(State.Primary.DESIGN_RECIPE, State.Sub.CONTRACT):
             self.parse_contract(line)
+            self.curr_fx.design_recipe_lines.append(line)
         elif self.state.is_in(State.Primary.DESIGN_RECIPE, State.Sub.PURPOSE):
             self.parse_purpose(line)
+            self.curr_fx.design_recipe_lines.append(line.replace('`', ''))
         elif self.state.is_in(State.Primary.DESIGN_RECIPE, State.Sub.IN_OUTS):
             self.parse_in_outs(line)
+            self.curr_fx.design_recipe_lines.append(line)
         elif self.state.is_in(State.Primary.DESIGN_RECIPE, State.Sub.EXAMPLE):
             self.parse_example(line)
+            self.curr_fx.design_recipe_lines.append(line)
         elif self.state.is_in(State.Primary.BODY_OUTLINE):
             self.parse_body_outline(line)
 

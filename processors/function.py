@@ -14,6 +14,9 @@ class Function:
         self.args_names = ([None] * len(self.args_types)) if self.args_types[0].lower() != 'none' else []
         self.return_name = None
 
+        # original lines from the outline (to be reproduced in the template as documentation for the function)
+        self.design_recipe_lines = []
+
         # side effect (i.e. console or disk) I/Os
         self.ins = None
         self.outs = None

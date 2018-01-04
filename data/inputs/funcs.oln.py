@@ -15,7 +15,7 @@ EXAMPLE  | 0.0 -> 0.0
          | 1.0 -> 0.453592
          | 5.5 -> 2.494756
          | 120.0 -> 54.43104
-         | 213.0 -> 104.779752
+         | 213.0 -> 96.615096
 """
 # calculate the result with given formula
 
@@ -50,7 +50,7 @@ CONTRACT | getVelocitySkater : float float float -> float
 -------: | :-------------------------------------------------------------------
 PURPOSE  | Takes in `skater's mass`, `object's mass`, and `object's velocity`, calculates `skater's velocity`.
 IN/OUTS  | None/None
-EXAMPLE  | 0.0 3.0 0.0 ->  0.0
+EXAMPLE  | 1.0 3.0 0.0 ->  0.0
          | 54.43104 5.3 7.3782789321 -> 0.7184297478
 """
 # calculate the result with given formula
