@@ -102,6 +102,11 @@ class Example:
         try:
             if type in recognized_types:
                 cast = locate(type)
+
+                # casting str -> bool evals according to 'Truthiness'
+                if cast == bool and val == 'False':
+                    val = ''
+
                 return cast(val)
             else:
                 return val
