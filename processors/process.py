@@ -37,7 +37,7 @@ def main(args):
 
     writer = PythonWriter(parser.functions, template_name)
 
-    tpl_file_path = path_dir + template_name + '.tpl.py'
+    tpl_file_path = path_dir + template_name + '.py'
     ut_file_path = path_dir + template_name + '_tests.py'
 
     tpl_file = open(tpl_file_path, 'w')
