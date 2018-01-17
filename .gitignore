@@ -103,5 +103,5 @@ ENV/
 # IDE
 .idea/
 
-# outputs - just for now 1/16
-data/outputs/
+# data - just for now 1/16
+data/
