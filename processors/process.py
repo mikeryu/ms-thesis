@@ -124,7 +124,7 @@ def wrap_top_level_exception(e):
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print('Usage: DRCOP <path_to_code_outline> [path_to_generated_output]', end='\n\n')
-        print('    path_to_generated_output is optional; when omitted, same path is input is used.')
+        print('    path_to_generated_output is optional; when omitted, path_to_code_outline is used.')
         print('    If you\'re unsure about the usage of this tool, please contact your instructor.', end='\n\n')
     else:
         try:
