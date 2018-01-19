@@ -268,7 +268,7 @@ class Parser:
         # based on their declared type (as given in the CONTRACT), i.e. float_val_1
         if ndx < num_spots:
             counter = 1
-            while counter < num_spots:
+            while counter <= num_spots:
                 self.curr_fx.args_names[ndx] = self.curr_fx.args_types[ndx] + '_val_' + str(counter)
                 counter += 1
 
@@ -318,6 +318,11 @@ class Parser:
         :param line: EXAMPLE line in the design recipe.
         :return:
         """
+        if not self.curr_fx:
+            self.print_parse_error(self.line, 0,
+                                   'Invalid syntax has caused function object to not populate', True)
+
+
         line = self.get_design_recipe_line_content_only(line)
 
         # 'n/a' signals no applicable (trivially unit-testable) examples could be given.
@@ -350,7 +355,7 @@ class Parser:
                         result = example.add_arg(arg_val)
                         if not result:
                             self.print_parse_error(line, offset,
-                                                   'Argument value ' + str(arg_val) + ' was not accepted.')
+                                                   'Argument value \'{}\' was not accepted.'.format(arg_val))
                     except IndexError:
                         self.print_parse_error(line, offset, 'Too many argument values - ignoring ' + str(arg_val))
 
@@ -369,9 +374,11 @@ class Parser:
     # Helper Functions
 
     def validate_current_function_completion(self):
-        if not self.curr_fx.validate_completion():
+        if not self.curr_fx:
             self.print_parse_error(self.line, 0,
-                                   'Function \'{}\' is incomplete'.format(self.curr_fx.name))
+                                   'Invalid syntax caused function object to not populate correctly.', True)
+        elif not self.curr_fx.validate_completion():
+            self.print_parse_error(self.line, 0, 'Function \'{}\' is incomplete'.format(self.curr_fx.name))
 
         # PRINT STATEMENT FOR DEBUGGING
         # else:
@@ -385,7 +392,7 @@ class Parser:
             ndx = line.index('|')
         except ValueError:
             self.print_parse_error(line, line.index(' ') if ' ' in line else 0,
-                                   'Pipe (|) token is expected at the design recipe header')
+                                   'Pipe (|) token is expected at the design recipe header.')
 
         return line[ndx + 1:].strip()
 
@@ -397,11 +404,17 @@ class Parser:
         var_name += re.sub(r'[^\w\d_]', '_', natural_name.replace('\'', ''))
         return var_name
 
-    def print_parse_error(self, line, loc, msg):
+    def print_parse_error(self, line, loc, msg, is_critical=False):
         prefix = 'PARSE ERROR'
-        message = prefix + ' | ' + msg + ' at line ' + str(self.line_num) + '\n'
-        content = (' ' * len(prefix) + ' | ') + line.replace('\n', '') + '\n'
+        critical = 'CRITICAL :('
+        ignorable = '(ignorable)'
+
+        message = prefix + ' | At line ' + str(self.line_num) + ' -- ' + msg + '\n'
+        content = (critical if is_critical else ignorable) + ' | ' + line.replace('\n', '') + '\n'
         location = (' ' * len(prefix) + ' | ') + (' ' * loc) + '^\n'
 
         print('\n' + message + content + location, file=sys.stderr)
         sys.stderr.flush()
+
+        if is_critical:
+            exit(1)
