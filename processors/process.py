@@ -15,6 +15,7 @@ def main(args):
         exit(1)
     elif input_path[-len('.oln.py'):] != '.oln.py':
         print('Name of code outline file must end with ".oln.py"', file=sys.stderr)
+        exit(1)
 
     f = open(input_path)
     lines = f.readlines()
