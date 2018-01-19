@@ -70,7 +70,7 @@ def check_dup_and_write(file_path, writer):
         file_to_write.close()
         print('{} file \'{}\' has been generated.'.format('Unittest' if is_test_file else 'Template', file_path))
     else:
-        print('Skipping the generation of {} file.'.format('unittest' if is_test_file else 'template'))
+        print('Skipped generating a {} file.'.format('unittest' if is_test_file else 'template'))
 
 
 def get_duplicate_overwrite_permission(path_to_file):
@@ -111,7 +111,7 @@ def wrap_top_level_exception(e):
     print('    A critical error has occurred and DRCOP had to call it quits :(', end='\n\n')
     print('        Your instructor is very sorry that you had to experience this.')
     print('        Please show your instructor this error code: {}.'.format(error_hash), end='\n\n')
-    print('    This might have been caused by an invalid syntax in your .oln.py file.')
+    print('    This might have been caused by some invalid syntax in your .oln.py file.')
     print('    Please review your code outline and try again.', end='\n\n')
     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', end='\n\n')
 
