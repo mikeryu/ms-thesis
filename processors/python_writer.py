@@ -76,15 +76,33 @@ class PythonWriter(Writer):
             header = indent + 'def test_{}_{:d}(self):\n'.format(fxn.name, count + 1)
             expl = (indent * 2) + ex.expl + '\n' if ex.expl else ''
 
-            assert_type = 'assertAlmostEqual' if type(ex.rtrn) in [float, complex] else 'assertEqual'
-
-            return_val = "\"{}\"".format(ex.rtrn.replace('"', '\"')) if type(ex.rtrn) == str else ex.rtrn
-            return_val = None if return_val == "\"None\"" else return_val  # TODO do better than this
-
+            expected = self.format_return_val(ex.expt)
+            assert_type = self.determine_assert_type(ex.expt)
             args = str(ex.args).strip().lstrip('[').rstrip(']')
-
-            body = (indent * 2) + 'self.{}({}({}), {})\n'.format(assert_type, fxn.name, args, return_val)
+            body = (indent * 2) + self.determine_body(assert_type, fxn.name, args, expected)
 
             tests += header + expl + body + '\n'
 
         return tests
+
+    def determine_body(self, assert_type, fxn_name, args, expected_val):
+        if assert_type in ['assertTrue', 'assertFalse']:
+            return 'self.{}({}({}))\n'.format(assert_type, fxn_name, args)
+        else:
+            return 'self.{}({}({}), {})\n'.format(assert_type, fxn_name, args, expected_val)
+
+    def determine_assert_type(self, return_val):
+        return_type = type(return_val)
+        if return_type in [float, complex]:
+            return 'assertAlmostEqual'
+        elif return_type == bool:
+            return 'assertTrue' if return_val else 'assertFalse'
+        else:
+            return 'assertEqual'
+
+    def format_return_val(self, return_val):
+        """ Dealing with None is done in function.py """
+        if type(return_val) == str:
+            return "\"{}\"".format(return_val.replace('"', '\"'))
+        else:
+            return return_val

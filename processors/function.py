@@ -65,7 +65,7 @@ class Example:
     def __init__(self, function):
         self.fxn = function
         self.args = None
-        self.rtrn = None
+        self.expt = None
         self.expl = None
 
         self.arity_count = 0
@@ -92,15 +92,18 @@ class Example:
         if rtrn_val is None:
             return False
         else:
-            self.rtrn = rtrn_val
+            self.expt = rtrn_val
             return True
 
     def cast_value(self, val, is_rtrn_val):
+        """ Timing at which this function is called when casting argument values matter! """
         recognized_types = ['int', 'float', 'complex', 'str', 'chr', 'bool']
-        type = self.fxn.return_type if is_rtrn_val else self.fxn.args_types[self.arity_count]
+        type = self.fxn.return_type if is_rtrn_val else self.fxn.args_types[self.arity_count] # ^ because of this
 
         try:
-            if type in recognized_types:
+            if val == 'None':
+                return None
+            elif type in recognized_types:
                 cast = locate(type)
 
                 # casting str -> bool evals according to 'Truthiness'
@@ -121,6 +124,6 @@ class Example:
         return '{}({}) -> {}    ({})'.format(
             self.fxn.name,
             str(self.args).lstrip('[').rstrip(']'),
-            str(self.rtrn),
+            str(self.expt),
             self.expl if self.expl else 'no expl'
         )
