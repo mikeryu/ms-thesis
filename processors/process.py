@@ -2,10 +2,12 @@ import sys, time, datetime, traceback, os.path
 
 from parser import Parser
 from python_writer import PythonWriter
+from logpath import _logpath
 
 _tpl_suffix = '.py'
 _ut_suffix = '_tests.py'
 
+_logdata = {}
 
 def main(args):
     input_path = args[0]
@@ -38,6 +40,9 @@ def main(args):
 
     if path_dir[-1] != '/':
         path_dir += '/'
+
+    _logdata['input_path'] = input_path
+    _logdata['output_path_dir'] = path_dir
 
     writer = PythonWriter(parser.functions, template_name)
 
@@ -106,6 +111,7 @@ def wrap_top_level_exception(e):
 
     error_hash = abs(hash(e))
     log_file_name = 'ERROR-{}.log'.format(error_hash)
+    log_file_path = _logpath + log_file_name
 
     print('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', end='\n\n')
     print('    A critical error has occurred and DRCOP had to call it quits :(', end='\n\n')
@@ -115,8 +121,9 @@ def wrap_top_level_exception(e):
     print('    Please review your code outline and try again.', end='\n\n')
     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', end='\n\n')
 
-    with open(log_file_name, 'a') as f:
+    with open(log_file_path, 'a') as f:
         f.write('Exception occurred at {} (local timestamp)\n\n'.format(ts_str))
+        f.write('Log data:\n    {}\n\n'.format(str(_logdata)))
         f.write(str(e) + '\n\n')
         f.write(traceback.format_exc())
 
