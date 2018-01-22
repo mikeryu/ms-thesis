@@ -105,3 +105,7 @@ ENV/
 
 # data - just for now 1/16
 data/
+
+# can't expose user names
+collect/config.json
+processors/logpath.py
