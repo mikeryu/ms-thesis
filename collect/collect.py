@@ -16,6 +16,7 @@ def main(args):
     users = config["users"]
     projects = config["projects"]
     active = config["active_projects"]
+    pdf_config = config["pdf_config"]
 
     if output_path[-1] != '/':
         output_path += '/'
@@ -55,7 +56,7 @@ def main(args):
                               file=sys.stderr, end='\n\n')
 
                     pdf_path = output_path + 'pdf/{}_{}.pdf'.format(u, f)
-                    pdf_success = write_pdf(pdf_path, html_path)
+                    pdf_success = write_pdf(pdf_path, html_path, pdf_config)
                     if pdf_success:
                         print(' pdf', end='')
                         sys.stdout.flush()
@@ -117,21 +118,9 @@ def write_html(html_path, outline_content):
     return True
 
 
-def write_pdf(pdf_path, html_path):
-    options = {
-        'page-size': 'Letter',
-        'margin-top': '0.75in',
-        'margin-right': '0.75in',
-        'margin-bottom': '0.75in',
-        'margin-left': '0.75in',
-        'encoding': "UTF-8",
-        'no-outline': None,
-        'dpi': 350,
-        'quiet': ''
-    }
-
+def write_pdf(pdf_path, html_path, pdf_config):
     try:
-        pdfkit.from_file(html_path, pdf_path, options=options)
+        pdfkit.from_file(html_path, pdf_path, options=pdf_config)
     except IOError:
         return False
     return True
