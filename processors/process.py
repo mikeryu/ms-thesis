@@ -121,7 +121,7 @@ def wrap_top_level_exception(e):
     print('    Please review your code outline and try again.', end='\n\n')
     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', end='\n\n')
 
-    with open(log_file_path, 'a') as f:
+    with open(log_file_path, 'w') as f:
         f.write('Exception occurred at {} (local timestamp)\n\n'.format(ts_str))
         f.write('Log data:\n    {}\n\n'.format(str(_logdata)))
         f.write(str(e) + '\n\n')
