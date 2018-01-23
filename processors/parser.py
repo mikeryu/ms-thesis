@@ -322,7 +322,6 @@ class Parser:
             self.print_parse_error(self.line, 0,
                                    'Invalid syntax has caused function object to not populate', True)
 
-
         line = self.get_design_recipe_line_content_only(line)
 
         # 'n/a' signals no applicable (trivially unit-testable) examples could be given.
@@ -366,6 +365,13 @@ class Parser:
         Add the body outline (any comment lines outside of the design recipe) to a list tied to the function.
         :param line: line to parse.
         """
+        if not self.curr_fx:
+            self.print_parse_error(self.line, 0,
+                                   'Invalid syntax has caused function object to not populate\n' +
+                                   '            |     You might be trying to convert a non-functions file with DRCOP.\n' +
+                                   '            |     DRCOP does not yet support conversion of a non-funtion file.',
+                                   True)
+
         line = line.strip()
         if line and line[0] == '#':
             self.curr_fx.body_outlines.append(line)
