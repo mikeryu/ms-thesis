@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys, time, datetime, traceback, os.path
 
 from parser import Parser
