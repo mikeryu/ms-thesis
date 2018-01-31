@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys, time, datetime, traceback, os.path
 
 from parser import Parser
@@ -141,3 +143,4 @@ if __name__ == '__main__':
                 raise e
             else:
                 wrap_top_level_exception(e)
+                exit(-1)

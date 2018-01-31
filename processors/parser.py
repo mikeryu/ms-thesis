@@ -58,6 +58,7 @@ class Parser:
         # line being processed
         self.line_num = 0
         self.line = None
+        self.prev_line = None
 
         # state of the parser
         self.prev_state = None
@@ -75,6 +76,7 @@ class Parser:
         Determine the state of the parser and call the appropriate method to actually parse the line.
         Designed to be called by a client, one call per line of code outline.
         """
+        self.prev_line = self.line
         self.line = line
         self.line_num += 1
 
@@ -383,8 +385,12 @@ class Parser:
         if not self.curr_fx:
             self.print_parse_error(self.line, 0,
                                    'Invalid syntax caused function object to not populate correctly.', True)
-        elif not self.curr_fx.validate_completion():
-            self.print_parse_error(self.line, 0, 'Function \'{}\' is incomplete'.format(self.curr_fx.name))
+        else:
+            is_complete, reasons = self.curr_fx.validate_completion()
+            if not is_complete:
+                msg = 'Function \'{}\' is incomplete'.format(self.curr_fx.name) + \
+                      ' (missing {})'.format(', '.join(reasons)) if reasons else ''
+                self.print_parse_error(self.prev_line, 0, msg, line_number_offset=-1)
 
         # PRINT STATEMENT FOR DEBUGGING
         # else:
@@ -410,12 +416,12 @@ class Parser:
         var_name += re.sub(r'[^\w\d_]', '_', natural_name.replace('\'', ''))
         return var_name
 
-    def print_parse_error(self, line, loc, msg, is_critical=False):
+    def print_parse_error(self, line, loc, msg, is_critical=False, line_number_offset=0):
         prefix = 'PARSE ERROR'
         critical = 'CRITICAL :('
         ignorable = '(ignorable)'
 
-        message = prefix + ' | At line ' + str(self.line_num) + ' -- ' + msg + '\n'
+        message = prefix + ' | At line ' + str(self.line_num + line_number_offset) + ' -- ' + msg + '\n'
         content = (critical if is_critical else ignorable) + ' | ' + line.replace('\n', '') + '\n'
         location = (' ' * len(prefix) + ' | ') + (' ' * loc) + '^\n'
 
