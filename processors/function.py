@@ -30,15 +30,28 @@ class Function:
 
     def validate_completion(self):
         is_valid = True
+        reasons = []
+
+        # check for purpose statement presence
         is_valid &= self.purpose is not None
+        if not is_valid:
+            reasons.append('purpose')
 
+        # check for argument names
+        nonempty_arg_name = True
         for arg_name in self.args_names:
-            is_valid &= arg_name is not None
+            nonempty_arg_name &= arg_name is not None
+            is_valid &= nonempty_arg_name
+        if not nonempty_arg_name:
+            reasons.append('argument name(s)')
 
-        # is_valid &= len(self.examples) >= 1 if self.return_type else True
-        is_valid &= len(self.body_outlines) >= 1
+        # check for body outlines
+        nonempty_body_outline = len(self.body_outlines) >= 1
+        is_valid &= nonempty_body_outline
+        if not nonempty_body_outline:
+            reasons.append('body outline')
 
-        return is_valid
+        return is_valid, tuple(reasons)
 
     def __str__(self):
         """
