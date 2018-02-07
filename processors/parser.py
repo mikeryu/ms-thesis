@@ -50,10 +50,13 @@ class Parser:
     ###################################################################################################################
     # Constructors and Public Functions
 
-    def __init__(self):
+    def __init__(self, indentation_size):
         """
         Mostly class member declarations and initializations.
         """
+
+        # indentation size to use when parsing the body outline
+        self.indent_size = indentation_size
 
         # line being processed
         self.line_num = 0
@@ -374,12 +377,17 @@ class Parser:
                                    '            |     DRCOP does not yet support conversion of a non-funtion file.',
                                    True)
 
-        line = line.strip()
-        if line and line[0] == '#':
-            self.curr_fx.body_outlines.append(line)
+        line_stripped = line.strip()
+        if line_stripped and line_stripped[0] == '#':
+            level = self.determine_body_outline_level(line)
+            self.curr_fx.body_outlines.append((line_stripped, level))
 
     ###################################################################################################################
     # Helper Functions
+
+    def determine_body_outline_level(self, line):
+        hash_index = line.index('#')
+        return round(hash_index / self.indent_size)
 
     def validate_current_function_completion(self):
         if not self.curr_fx:

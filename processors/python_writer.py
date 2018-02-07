@@ -54,8 +54,8 @@ class PythonWriter(Writer):
         body = indent + 'pass    # delete "pass" once you have real code for this function!\n'
 
         outline = '\n'
-        for oln in fxn.body_outlines:
-            outline += indent + oln + '\n\n'
+        for oln, level in fxn.body_outlines:
+            outline += indent + (level * indent) + oln + '\n\n'
 
         return header + design_recipe + body + outline + '\n'
 

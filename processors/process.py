@@ -8,6 +8,7 @@ from logpath import _logpath
 
 _tpl_suffix = '.py'
 _ut_suffix = '_tests.py'
+_indent_size = 4
 
 _logdata = {}
 
@@ -24,7 +25,7 @@ def main(args):
     f = open(input_path)
     lines = f.readlines()
 
-    parser = Parser()
+    parser = Parser(_indent_size)
     for l in lines:
         parser.parse(l)
 
