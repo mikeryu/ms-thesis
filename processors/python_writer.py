@@ -54,8 +54,8 @@ class PythonWriter(Writer):
         body = indent + 'pass    # delete "pass" once you have real code for this function!\n'
 
         outline = '\n'
-        for oln in fxn.body_outlines:
-            outline += indent + oln + '\n\n'
+        for oln, level in fxn.body_outlines:
+            outline += indent + (level * indent) + oln + '\n\n'
 
         return header + design_recipe + body + outline + '\n'
 
@@ -78,7 +78,7 @@ class PythonWriter(Writer):
 
             expected = self.format_return_val(ex.expt)
             assert_type = self.determine_assert_type(ex.expt)
-            args = str(ex.args).strip().lstrip('[').rstrip(']')
+            args = str(ex.args).strip()[1:-1]
             body = (indent * 2) + self.determine_body(assert_type, fxn.name, args, expected)
 
             tests += header + expl + body + '\n'

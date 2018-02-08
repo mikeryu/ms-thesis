@@ -1,4 +1,5 @@
 from pydoc import locate
+from ast import literal_eval
 
 
 class Function:
@@ -75,13 +76,14 @@ class Function:
 
 class Example:
 
-    def __init__(self, function):
+    def __init__(self, function, recognized_primitives):
         self.fxn = function
         self.args = None
         self.expt = None
         self.expl = None
 
         self.arity_count = 0
+        self.primitives = recognized_primitives
 
     def add_arg(self, arg_val):
         arity = len(self.fxn.args_types)
@@ -92,8 +94,8 @@ class Example:
         if not self.args:
             self.args = []
 
-        arg_val = self.cast_value(arg_val, False)
-        if arg_val is None:
+        arg_val = self.eval_value_str(arg_val, False)
+        if arg_val == '____total__and__utter__failure':
             return False
         else:
             self.args.append(arg_val)
@@ -101,19 +103,22 @@ class Example:
             return True
 
     def add_rtrn(self, return_val):
-        rtrn_val = self.cast_value(return_val, True)
-        if rtrn_val is None:
+        rtrn_val = self.eval_value_str(return_val, True)
+        if rtrn_val == '____total__and__utter__failure':
             return False
         else:
             self.expt = rtrn_val
             return True
 
-    def cast_value(self, val, is_rtrn_val):
-        """ Timing at which this function is called when casting argument values matter! """
-        recognized_types = ['int', 'float', 'complex', 'str', 'chr', 'bool']
-        type = self.fxn.return_type if is_rtrn_val else self.fxn.args_types[self.arity_count] # ^ because of this
+    def eval_value_str(self, val, is_rtrn_val):
+        """ Timing at which this function is called when casting argument values matter! (see comment below) """
+        recognized_types = self.primitives
 
-        try:
+        # The line below is the reason for the docstring ^
+        # It must be called in arity order or bad things will happen ...
+        type = self.fxn.return_type if is_rtrn_val else self.fxn.args_types[self.arity_count]
+
+        try: # safety net for locate() and literal_eval()
             if val == 'None':
                 return None
             elif type in recognized_types:
@@ -125,9 +130,13 @@ class Example:
 
                 return cast(val)
             else:
-                return val
+                try:
+                    return literal_eval(val)
+                except SyntaxError:
+                    return val
+
         except ValueError:
-            return None
+            return '____total__and__utter__failure'
 
     def __str__(self):
         """

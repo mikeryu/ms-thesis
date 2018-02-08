@@ -50,10 +50,16 @@ class Parser:
     ###################################################################################################################
     # Constructors and Public Functions
 
-    def __init__(self):
+    def __init__(self, indentation_size, recognized_primitives):
         """
         Mostly class member declarations and initializations.
         """
+
+        # indentation size to use when parsing the body outline
+        self.indent_size = indentation_size
+
+        # used in casting primitives from str to corresponding types
+        self.recognized_primitives = recognized_primitives
 
         # line being processed
         self.line_num = 0
@@ -299,17 +305,14 @@ class Parser:
             if 'file' in comment or 'drive' in comment or 'disk' in comment or 'filesystem' in comment:
                 self.curr_fx.in_outs_source.append('file')
 
-        # currently only supporting Python primitives and 'None' for side effect types
-        recognized_types = ['int', 'float', 'complex', 'str', 'chr', 'bool']
-
         inz = line[:ndx].lower().strip()
-        if inz in recognized_types:
+        if inz in self.recognized_primitives:
             self.curr_fx.ins = locate(inz)
         elif inz != 'none':
             self.print_parse_error(line, len(inz) // 2, 'Unrecognized input type ' + '\'' + inz + '\'')
 
         outz = line[ndx + 1:comment_ndx].lower().strip()
-        if outz in recognized_types:
+        if outz in self.recognized_primitives:
             self.curr_fx.outs = locate(outz)
         elif outz != 'none':
             self.print_parse_error(line, ndx + (len(outz) // 2), 'Unrecognized output type ' + '\'' + outz + '\'')
@@ -342,25 +345,53 @@ class Parser:
             else:
                 arrow_ndx = line.index('->')
                 args_portion = line[:arrow_ndx].strip()
-                return_portion = line[arrow_ndx:].replace('->', '').strip().strip('"').strip("'")
+                return_portion = line[arrow_ndx:].replace('->', '').strip()
 
-                example = Example(self.curr_fx)
-                example.add_rtrn(return_portion)
+                example = Example(self.curr_fx, self.recognized_primitives)
                 example.expl = explanation
 
-                offset = 0
-                for arg_val in args_portion.split():
-                    offset += len(arg_val) + 1
+                return_portions = self.separate_example_portions(return_portion, is_return_portion=True)
+                self.add_rtrn_to_example(example, return_portion, return_portions)
 
-                    try:
-                        result = example.add_arg(arg_val)
-                        if not result:
-                            self.print_parse_error(line, offset,
-                                                   'Argument value \'{}\' was not accepted.'.format(arg_val))
-                    except IndexError:
-                        self.print_parse_error(line, offset, 'Too many argument values - ignoring ' + str(arg_val))
+                arg_portions = self.separate_example_portions(args_portion)
+
+                offset = len('EXAMPLES | ')
+                for ndx, arg_val in enumerate(arg_portions):
+                    if arg_val:
+                        offset += len(arg_val)
+                        try:
+                            self.add_arg_to_example(arg_val, example, ndx, offset)
+                        except IndexError:
+                            self.print_parse_error(self.line, offset,
+                                                   'Too many argument values - ignoring \'{}\''.format(arg_val))
+                    else:
+                        self.print_parse_error(self.line, offset,
+                                               'Expected {:d} value(s), but only got {:d} value(s).'
+                                               .format(len(self.curr_fx.args_types), ndx))
 
                 self.curr_fx.examples.append(example)
+
+    def add_arg_to_example(self, arg_val, example, ndx, offset):
+        result = example.add_arg(arg_val)
+        if not result:
+            cast_type = self.curr_fx.args_types[ndx]
+            self.print_parse_error(self.line, offset,
+                                   'Casting \'{}\' to {}type \'{}\' failed; defaulting to None.'
+                                   .format(arg_val,
+                                           'unsupported ' if cast_type not in self.recognized_primitives else '',
+                                           cast_type))
+            example.add_arg('None')
+
+    def add_rtrn_to_example(self, example, return_portion, return_portions):
+        result = example.add_rtrn(return_portions[0])
+        if not result:
+            cast_type = self.curr_fx.return_type
+            self.print_parse_error(self.line, len(self.line) - len(return_portion[0]) - 1,
+                                   'Casting \'{}\' to {}type \'{}\' failed; defaulting to None.'
+                                   .format(return_portions[0],
+                                           'unsupported ' if cast_type not in self.recognized_primitives else '',
+                                           cast_type))
+            example.add_rtrn('None')
 
     def parse_body_outline(self, line):
         """
@@ -368,18 +399,112 @@ class Parser:
         :param line: line to parse.
         """
         if not self.curr_fx:
-            self.print_parse_error(self.line, 0,
-                                   'Invalid syntax has caused function object to not populate\n' +
-                                   '            |     You might be trying to convert a non-functions file with DRCOP.\n' +
-                                   '            |     DRCOP does not yet support conversion of a non-funtion file.',
-                                   True)
+            self.print_function_object_unpopulated_error(self.line)
 
-        line = line.strip()
-        if line and line[0] == '#':
-            self.curr_fx.body_outlines.append(line)
+        line_stripped = line.strip()
+        if line_stripped and line_stripped[0] == '#':
+            level = self.determine_body_outline_level(line)
+            self.curr_fx.body_outlines.append((line_stripped, level))
 
     ###################################################################################################################
     # Helper Functions
+
+    def determine_body_outline_level(self, line):
+        hash_index = line.index('#')
+        return round(hash_index / self.indent_size)
+
+    def separate_example_portions(self, portion, is_return_portion=False):
+        if not self.curr_fx:
+            self.print_function_object_unpopulated_error(self.line)
+
+        portion = portion.strip().replace(',', ' ')
+        args_strs = [None] if is_return_portion else [None] * len(self.curr_fx.args_types)
+
+        token_match_close_open = {']': '[', ')': '(', '}': '{'}
+        token_match_open_close = {'[': ']', '(': ')', '{': '}'}
+
+        ndx = 0
+        prev = ' '
+        part_str = ''
+        token_stack = []
+        in_string = False
+
+        loc = 0  # declared early to avoid UnboundLocalError when dealing with unclosed brackets
+        for loc, char in enumerate(portion, start=len('EXAMPLES | ')):
+            if char == '"' and not token_stack:
+                # manually detect literal string start and end
+                if in_string:
+                    in_string = False
+                elif not prev or prev == ' ':
+                    in_string = True
+
+                if part_str:
+                    self.add_arg_str(args_strs, ndx, part_str, loc + len('EXAMPLES | '))
+                    part_str = ''
+                    ndx += 1
+            elif in_string and char != '"':
+                # when in string, add everything but the double quote
+                part_str += char
+            elif not in_string:
+                # start of a next token
+                if char == ' ' and prev != ' ':
+                    # first encounter of space since the last non-space encounter
+                    if token_stack:
+                        # stack has something (inside of a structure)
+                        part_str += ','
+                    elif prev != '"':
+                        # assume it's the end of the structure unless prev == '"'
+                        # stack is empty (not inside of a structure)
+                        self.add_arg_str(args_strs, ndx, part_str, loc + len('EXAMPLES | '))
+                        part_str = ''
+                        ndx += 1
+
+                # manual bracket matching using the stack
+                elif char in ['[', '(', '{']:
+                    part_str += char
+                    token_stack.append(char)
+                elif char in [']', ')', '}']:
+                    expected_other_end = token_match_close_open[char]
+                    try:
+                        actual_other_end = token_stack.pop()
+                        if actual_other_end != expected_other_end:
+                            self.print_parse_error(self.line, loc,
+                                                   'Unmatched brackets; was expecting \'{}\' but found \'{}\'.'
+                                                   .format(expected_other_end, actual_other_end))
+                        part_str += char
+                    except IndexError:
+                        self.print_parse_error(self.line, loc,
+                                               'Unmatched brackets; \'{}\' is not matched with any open \'{}\'.'
+                                               .format(char, expected_other_end))
+                elif char != ' ':
+                    part_str += char
+
+            prev = char
+
+        if in_string:
+            part_str += '"'
+            self.print_parse_error(self.line, loc,
+                                   'Unclosed quote \'"\' found; DRCOP is placing \'"\' at the end.')
+
+        while token_stack:
+            unclosed = token_stack.pop()
+            part_str += token_match_open_close[unclosed]
+            self.print_parse_error(self.line, loc,
+                                   'Unclosed bracket \'{}\' found; DRCOP is placing \'{}\' at the end.'
+                                   .format(unclosed, token_match_open_close[unclosed]))
+
+        if ndx < len(args_strs):
+            args_strs[ndx] = part_str
+
+        return args_strs
+
+    def add_arg_str(self, args_strs, ndx, part_str, loc=0):
+        try:
+            args_strs[ndx] = part_str
+        except IndexError:
+            self.print_parse_error(self.line, loc,
+                                   'Unexpected value (possibly due to unmatched brackets) - ignoring \'{}\''
+                                   .format(part_str))
 
     def validate_current_function_completion(self):
         if not self.curr_fx:
@@ -416,14 +541,28 @@ class Parser:
         var_name += re.sub(r'[^\w\d_]', '_', natural_name.replace('\'', ''))
         return var_name
 
+    def print_function_object_unpopulated_error(self, line, loc=0):
+        self.print_parse_error(line, loc,
+                               'Invalid syntax caused function object to not populate (check your outline).', True)
+
     def print_parse_error(self, line, loc, msg, is_critical=False, line_number_offset=0):
         prefix = 'PARSE ERROR'
         critical = 'CRITICAL :('
         ignorable = '(ignorable)'
 
+        content = line.replace('\n', '')
+        location = (' ' * loc)
+
+        # shorten the line output if it's getting too long
+        column_length_limit = 80  # TODO: Uhh ... refactor later
+        if len(content) > column_length_limit:
+            condense_to = len(content) - column_length_limit
+            content = '... ' + content[condense_to:]
+            location = '    ' + location[condense_to:]
+
         message = prefix + ' | At line ' + str(self.line_num + line_number_offset) + ' -- ' + msg + '\n'
-        content = (critical if is_critical else ignorable) + ' | ' + line.replace('\n', '') + '\n'
-        location = (' ' * len(prefix) + ' | ') + (' ' * loc) + '^\n'
+        content = (critical if is_critical else ignorable) + ' | ' + content + '\n'
+        location = (' ' * len(prefix) + ' | ') + location + '^\n'
 
         print('\n' + message + content + location, file=sys.stderr)
         sys.stderr.flush()
