@@ -6,14 +6,18 @@ from parser import Parser
 from python_writer import PythonWriter
 from logpath import _logpath
 
+# TODO: factor these out as a config
+_recognized_primitives = ['int', 'float', 'str', 'bool']
+_indent_size = 4
+
 _tpl_suffix = '.py'
 _ut_suffix = '_tests.py'
-_indent_size = 4
 
 _logdata = {}
 
 def main(args):
     input_path = args[0]
+    _logdata['input_path'] = input_path
 
     if not os.path.isfile(input_path):
         print('Invalid input path given:', input_path, file=sys.stderr)
@@ -25,13 +29,14 @@ def main(args):
     f = open(input_path)
     lines = f.readlines()
 
-    parser = Parser(_indent_size)
+    parser = Parser(_indent_size, _recognized_primitives)
     for l in lines:
         parser.parse(l)
 
     parser.signal_EOF()
 
     path_dir, template_name = parse_input_path(input_path)
+    _logdata['output_path_dir'] = path_dir
 
     if len(args) > 1 and args[1] != '--debug':
         path_dir = args[1]
@@ -44,8 +49,6 @@ def main(args):
     if path_dir[-1] != '/':
         path_dir += '/'
 
-    _logdata['input_path'] = input_path
-    _logdata['output_path_dir'] = path_dir
 
     writer = PythonWriter(parser.functions, template_name)
 

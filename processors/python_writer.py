@@ -78,7 +78,7 @@ class PythonWriter(Writer):
 
             expected = self.format_return_val(ex.expt)
             assert_type = self.determine_assert_type(ex.expt)
-            args = str(ex.args).strip().lstrip('[').rstrip(']')
+            args = str(ex.args).strip()[1:-1]
             body = (indent * 2) + self.determine_body(assert_type, fxn.name, args, expected)
 
             tests += header + expl + body + '\n'
