@@ -570,7 +570,7 @@ class Parser:
         except:
             self.print_parse_error(
                 line if line else '(unable to process the line being processed)', loc if loc else 1,
-                'An unexpected error has occurred while attempting to report a PARSE ERROR', is_critical=True
+                'An unexpected error has occurred while attempting to report a PARSE ERROR.', is_critical=True
             )
 
         if is_critical:
