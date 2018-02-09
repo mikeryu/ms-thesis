@@ -147,4 +147,4 @@ if __name__ == '__main__':
                 raise e
             else:
                 wrap_top_level_exception(e)
-                exit(-1)
+                exit(127) # error code 127 to trigger `chmod` in bash wrapper
