@@ -231,8 +231,9 @@ class Parser:
         line_tokens = line.replace(':', '').split()
 
         if line_tokens[-2] != '->':
-            loc = -1 * (len(line_tokens[-1]) + len(line_tokens[-2]))
-            self.print_parse_error(line, loc, 'Arrow (->) is expected in CONTRACT')
+            loc = -1 * (len(line_tokens[-1]) + len(line_tokens[-2])) + len('CONTRACT | ') + len(line)
+            self.print_parse_error(self.line, loc,
+                                   'CONTRACT must have an arrow (->) and a single return type.', True)
         else:
             func_name = line_tokens[0]
             return_type = line_tokens[-1]
@@ -292,7 +293,7 @@ class Parser:
             ndx = line.index('/')
         except ValueError:
             self.print_parse_error(line, line.index(' ') if ' ' in line else 0,
-                                   'Slash (/) token is expected in IN/OUTS')
+                                   'Slash (/) token is expected in IN/OUTS.')
 
         comment_ndx = line.index('#') if '#' in line else len(line)
 
@@ -309,13 +310,13 @@ class Parser:
         if inz in self.recognized_primitives:
             self.curr_fx.ins = locate(inz)
         elif inz != 'none':
-            self.print_parse_error(line, len(inz) // 2, 'Unrecognized input type ' + '\'' + inz + '\'')
+            self.print_parse_error(line, len(inz) // 2, 'Unrecognized input type ' + '\'' + inz + '\'.')
 
         outz = line[ndx + 1:comment_ndx].lower().strip()
         if outz in self.recognized_primitives:
             self.curr_fx.outs = locate(outz)
         elif outz != 'none':
-            self.print_parse_error(line, ndx + (len(outz) // 2), 'Unrecognized output type ' + '\'' + outz + '\'')
+            self.print_parse_error(line, ndx + (len(outz) // 2), 'Unrecognized output type ' + '\'' + outz + '\'.')
 
     def parse_example(self, line):
         """
@@ -325,7 +326,8 @@ class Parser:
         """
         if not self.curr_fx:
             self.print_parse_error(self.line, 0,
-                                   'Invalid syntax has caused function object to not populate', True)
+                                   'Invalid syntax has caused function object to not populate (check your outline).',
+                                   True)
 
         line = self.get_design_recipe_line_content_only(line)
 
@@ -341,7 +343,7 @@ class Parser:
 
             line_tokens = line.split()
             if '->' not in line_tokens:
-                self.print_parse_error(line, len(line), 'Arrow (->) is expected in EXAMPLE')
+                self.print_parse_error(line, len(line), 'Arrow (->) is expected in EXAMPLE.')
             else:
                 arrow_ndx = line.index('->')
                 args_portion = line[:arrow_ndx].strip()
@@ -363,7 +365,7 @@ class Parser:
                             self.add_arg_to_example(arg_val, example, ndx, offset)
                         except IndexError:
                             self.print_parse_error(self.line, offset,
-                                                   'Too many argument values - ignoring \'{}\''.format(arg_val))
+                                                   'Too many argument values - ignoring \'{}\'.'.format(arg_val))
                     else:
                         self.print_parse_error(self.line, offset,
                                                'Expected {:d} value(s), but only got {:d} value(s).'
@@ -503,13 +505,14 @@ class Parser:
             args_strs[ndx] = part_str
         except IndexError:
             self.print_parse_error(self.line, loc,
-                                   'Unexpected value (possibly due to unmatched brackets) - ignoring \'{}\''
+                                   'Unexpected value (possibly due to unmatched brackets) - ignoring \'{}\'.'
                                    .format(part_str))
 
     def validate_current_function_completion(self):
         if not self.curr_fx:
             self.print_parse_error(self.line, 0,
-                                   'Invalid syntax caused function object to not populate correctly.', True)
+                                   'Invalid syntax caused function object to not populate correctly (check your outline).',
+                                   True)
         else:
             is_complete, reasons = self.curr_fx.validate_completion()
             if not is_complete:
@@ -548,28 +551,39 @@ class Parser:
     def print_parse_error(self, line, loc, msg, is_critical=False, line_number_offset=0):
         try:
             prefix = 'PARSE ERROR'
-            critical = 'CRITICAL :('
-            ignorable = '(ignorable)'
+            critical = 'CRITICAL'
+            ignorable = 'Ignorable'
+
+            severity = critical if is_critical else ignorable
 
             content = line.replace('\n', '')
-            location = (' ' * loc)
+            spaces = (' ' * loc)
+            location = ('\u2500' * loc)
 
             # shorten the line output if it's getting too long
             column_length_limit = 80  # TODO: Uhh ... refactor later
             if len(content) > column_length_limit:
                 condense_to = len(content) - column_length_limit
                 content = '... ' + content[condense_to:]
-                location = '    ' + location[condense_to:]
+                location = '\u2500\u2500\u2500\u2500' + location[condense_to:]
+                spaces += '    '
 
-            message = prefix + ' | At line ' + str(self.line_num + line_number_offset) + ' -- ' + msg + '\n'
-            content = (critical if is_critical else ignorable) + ' | ' + content + '\n'
-            location = (' ' * len(prefix) + ' | ') + location + '^\n'
+            header_start = '\u250C\u2500 {} {} at line {:d}:\n\u2502\n'.format(
+                severity, prefix, self.line_num if self.line_num else 0 + line_number_offset
+            )
 
-            print('\n' + message + content + location, file=sys.stderr)
+            message = '\u2502  {}\n\u2502\n'.format(msg)
+            content = '\u2502    {}\n'.format(content)
+
+            arrow = '\u2502    {}\u25B2\n'.format(spaces)
+            location = '\u2514\u2500\u2500\u2500\u2500{}{}\n'.format(location, '\u2518')
+
+            print('\n' + header_start + message + content + arrow + location, file=sys.stderr)
+
             sys.stderr.flush()
         except:
             self.print_parse_error(
-                line if line else '(unable to process the line being processed)', loc if loc else 1,
+                line if line else '(unable to reproduce the line being processed)', loc if loc else 1,
                 'An unexpected error has occurred while attempting to report a PARSE ERROR.', is_critical=True
             )
 
