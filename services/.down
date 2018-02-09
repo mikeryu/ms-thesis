@@ -1,0 +1,2 @@
+echo "Running ./src/DRCOP_DOWN ./DRCOP"
+cp ./src/DRCOP_DOWN ./DRCOP

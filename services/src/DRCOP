@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# DISABLED MESSAGE
+# echo ""
+# echo "$(tput setaf 1)This service has been deprecated and is no longer functional!$(tput sgr 0)"
+# echo ""
+
+//home/doryu/thesis/ms-thesis/processors/process.py "$@"
+RESULT=$?
+
+if [[ $RESULT -eq 127 ]]; then
+    chmod 444 --silent //home/doryu/thesis/ErrorLogs/*.log
+fi

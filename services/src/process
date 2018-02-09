@@ -1,0 +1,10 @@
+#!/bin/sh
+echo ""
+echo "$(tput setaf 1)This service has been deprecated and is no longer functional!$(tput sgr 0)"
+echo ""
+
+echo "Please try the following command instead:"
+echo ""
+
+echo "    //home/doryu/services/DRCOP"
+echo ""
