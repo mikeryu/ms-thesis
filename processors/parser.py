@@ -546,26 +546,32 @@ class Parser:
                                'Invalid syntax caused function object to not populate (check your outline).', True)
 
     def print_parse_error(self, line, loc, msg, is_critical=False, line_number_offset=0):
-        prefix = 'PARSE ERROR'
-        critical = 'CRITICAL :('
-        ignorable = '(ignorable)'
+        try:
+            prefix = 'PARSE ERROR'
+            critical = 'CRITICAL :('
+            ignorable = '(ignorable)'
 
-        content = line.replace('\n', '')
-        location = (' ' * loc)
+            content = line.replace('\n', '')
+            location = (' ' * loc)
 
-        # shorten the line output if it's getting too long
-        column_length_limit = 80  # TODO: Uhh ... refactor later
-        if len(content) > column_length_limit:
-            condense_to = len(content) - column_length_limit
-            content = '... ' + content[condense_to:]
-            location = '    ' + location[condense_to:]
+            # shorten the line output if it's getting too long
+            column_length_limit = 80  # TODO: Uhh ... refactor later
+            if len(content) > column_length_limit:
+                condense_to = len(content) - column_length_limit
+                content = '... ' + content[condense_to:]
+                location = '    ' + location[condense_to:]
 
-        message = prefix + ' | At line ' + str(self.line_num + line_number_offset) + ' -- ' + msg + '\n'
-        content = (critical if is_critical else ignorable) + ' | ' + content + '\n'
-        location = (' ' * len(prefix) + ' | ') + location + '^\n'
+            message = prefix + ' | At line ' + str(self.line_num + line_number_offset) + ' -- ' + msg + '\n'
+            content = (critical if is_critical else ignorable) + ' | ' + content + '\n'
+            location = (' ' * len(prefix) + ' | ') + location + '^\n'
 
-        print('\n' + message + content + location, file=sys.stderr)
-        sys.stderr.flush()
+            print('\n' + message + content + location, file=sys.stderr)
+            sys.stderr.flush()
+        except:
+            self.print_parse_error(
+                line if line else '(unable to process the line being processed)', loc if loc else 1,
+                'An unexpected error has occurred while attempting to report a PARSE ERROR.', is_critical=True
+            )
 
         if is_critical:
             exit(1)
