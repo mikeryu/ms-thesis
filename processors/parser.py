@@ -276,9 +276,14 @@ class Parser:
         # function args that were not designated any variable name will be given a generic name
         # based on their declared type (as given in the CONTRACT), i.e. float_val_1
         if ndx < num_spots:
-            counter = 1
+            counter = ndx + 1
             while counter <= num_spots:
-                self.curr_fx.args_names[ndx] = self.curr_fx.args_types[ndx] + '_val_' + str(counter)
+                curr_type = self.curr_fx.args_types[ndx]
+                auto_gen_name = '{}_arg_{:d}'.format(curr_type, counter)
+                self.print_parse_error(self.line, len('PURPOSE  | '),
+                                       'Argument name for \'{}\' at position {:d} not found; DRCOP is assigning \'{}\'.'
+                                       .format(curr_type, counter, auto_gen_name))
+                self.curr_fx.args_names[ndx] = auto_gen_name
                 counter += 1
 
     def parse_in_outs(self, line):
@@ -441,7 +446,7 @@ class Parser:
                     in_string = True
 
                 if part_str:
-                    self.add_arg_str(args_strs, ndx, part_str, loc + len('EXAMPLES | '))
+                    self.add_arg_str(args_strs, ndx, part_str, loc)
                     part_str = ''
                     ndx += 1
             elif in_string and char != '"':
@@ -457,7 +462,7 @@ class Parser:
                     elif prev != '"':
                         # assume it's the end of the structure unless prev == '"'
                         # stack is empty (not inside of a structure)
-                        self.add_arg_str(args_strs, ndx, part_str, loc + len('EXAMPLES | '))
+                        self.add_arg_str(args_strs, ndx, part_str, loc)
                         part_str = ''
                         ndx += 1
 
@@ -504,7 +509,7 @@ class Parser:
         try:
             args_strs[ndx] = part_str
         except IndexError:
-            self.print_parse_error(self.line, loc,
+            self.print_parse_error(self.line, loc - len(part_str),
                                    'Unexpected value (possibly due to unmatched brackets) - ignoring \'{}\'.'
                                    .format(part_str))
 
@@ -561,12 +566,8 @@ class Parser:
             location = ('\u2500' * loc)
 
             # shorten the line output if it's getting too long
-            column_length_limit = 80  # TODO: Uhh ... refactor later
-            if len(content) > column_length_limit:
-                condense_to = len(content) - column_length_limit
-                content = '... ' + content[condense_to:]
-                location = '\u2500\u2500\u2500\u2500' + location[condense_to:]
-                spaces += '    '
+            column_length_limit = 70  # TODO: Uhh ... refactor later
+            content, location, spaces = self.condense_content(column_length_limit, content, loc, location, spaces)
 
             header_start = '\u250C\u2500 {} {} at line {:d}:\n\u2502\n'.format(
                 severity, prefix, self.line_num if self.line_num else 0 + line_number_offset
@@ -589,3 +590,20 @@ class Parser:
 
         if is_critical:
             exit(1)
+
+    def condense_content(self, column_length_limit, content, loc, location, spaces):
+        if len(content) > column_length_limit:
+            condense_from = max(0, loc - column_length_limit // 2)
+            condense_to = loc + column_length_limit // 2
+
+            is_head = condense_from > 0
+            is_tail = condense_to < len(content)
+
+            dots_prefix = '... ' if is_head else ''
+            dots_suffix = ' ...' if is_tail else ''
+            content = dots_prefix + content[condense_from:condense_to] + dots_suffix
+
+            spaces = ('    ' if is_head else '') + spaces[condense_from:condense_to]
+            location = ('\u2500\u2500\u2500\u2500' if is_head else '') + location[condense_from:condense_to]
+
+        return content, location, spaces
